@@ -17,17 +17,17 @@
             transition: background-color 0.3s, color 0.3s;
             font-size: 16px;
         }
-        /* Karanlık mod stilleri */
+        /* Gelişmiş Karanlık mod stilleri */
         .dark-mode body {
-            background-color: #1a202c;
-            color: #e2e8f0;
+            background-color: #121212; /* Daha koyu arka plan */
+            color: #e0e0e0; /* Açık gri yazı rengi */
         }
         .card {
             background-color: #ffffff;
             transition: background-color 0.3s;
         }
         .dark-mode .card {
-            background-color: #2d3748;
+            background-color: #1e1e1e; /* Kartlar için daha koyu renk */
         }
         .btn-primary {
             background-color: #4a5568;
@@ -35,16 +35,15 @@
             transition: background-color 0.3s;
         }
         .dark-mode .btn-primary {
-            background-color: #a0aec0;
-            color: #1a202c;
+            background-color: #bb86fc; /* Mor ton */
+            color: #121212;
         }
         .btn-primary:hover {
             background-color: #2d3748;
         }
         .dark-mode .btn-primary:hover {
-            background-color: #c0c6d4;
+            background-color: #925cd7;
         }
-        /* Karanlık mod için anahtar düğme stilleri */
         .toggle-switch {
             width: 50px;
             height: 28px;
@@ -79,10 +78,12 @@
         input:checked + .slider {
             background-color: #4a5568;
         }
+        .dark-mode input:checked + .slider {
+            background-color: #bb86fc;
+        }
         input:checked + .slider:before {
             transform: translateX(22px);
         }
-        /* Sesli not oynatıcı stilleri */
         .voice-note-player {
             display: flex;
             align-items: center;
@@ -92,18 +93,64 @@
             border-radius: 8px;
         }
         .dark-mode .voice-note-player {
-            background-color: #4a5568;
+            background-color: #3b3b3b;
         }
         /* Yazı boyutuna göre body font boyutunu ayarla */
         .text-small { font-size: 14px; }
         .text-medium { font-size: 16px; }
         .text-large { font-size: 20px; }
+        
+        .tag {
+            padding: 4px 8px;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            color: white;
+            background-color: #4a5568;
+            cursor: pointer;
+        }
+        .tag.active {
+            background-color: #38a169; /* Filtreleme için aktif renk */
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+        .calendar-day {
+            text-align: center;
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .calendar-day:hover {
+            background-color: #e2e8f0;
+        }
+        .dark-mode .calendar-day:hover {
+            background-color: #2d3748;
+        }
+        .calendar-day.has-reminder {
+            font-weight: bold;
+            position: relative;
+        }
+        .calendar-day.has-reminder::after {
+            content: '';
+            display: block;
+            width: 6px;
+            height: 6px;
+            background-color: #bb86fc;
+            border-radius: 50%;
+            position: absolute;
+            bottom: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
     </style>
 </head>
 <body class="flex flex-col min-h-screen">
     <!-- Üst Menü Çubuğu (Navbar) -->
     <header class="bg-gray-800 text-white p-4 shadow-md flex justify-between items-center fixed top-0 left-0 w-full z-10">
-        <h1 class="text-2xl font-bold">Unutmam Ben!</h1>
+        <h1 id="navbar-title" class="text-2xl font-bold">Unutmam Ben!</h1>
         <div class="flex items-center gap-4">
             <!-- Karanlık/Aydınlık Mod Butonu -->
             <button id="toggle-theme" class="text-white p-2 rounded-full hover:bg-gray-700 transition">
@@ -122,28 +169,77 @@
             
             <!-- Ana Sayfa - Hatırlatıcı Listesi -->
             <div id="home-view" class="space-y-4">
+                <div id="summary-section" class="card p-4 rounded-xl shadow-md mb-4 hidden">
+                    <!-- Özet bilgileri buraya dinamik olarak eklenecek -->
+                </div>
+                <!-- Sürpriz Notlar -->
+                <div id="surprise-message" class="card p-4 rounded-xl shadow-md mb-4 hidden">
+                    <!-- Sürpriz mesaj buraya dinamik olarak eklenecek -->
+                </div>
+                <!-- Kategori Filtreleri -->
+                <div class="card p-4 rounded-xl shadow-md mb-4 flex flex-wrap gap-2">
+                    <button class="filter-tag-button tag bg-gray-500" data-tag="Tümü">Tümü</button>
+                    <button class="filter-tag-button tag bg-blue-500" data-tag="💊 İlaç">💊 İlaç</button>
+                    <button class="filter-tag-button tag bg-green-500" data-tag="🛒 Alışveriş">🛒 Alışveriş</button>
+                    <button class="filter-tag-button tag bg-purple-500" data-tag="📚 Ders">📚 Ders</button>
+                    <button class="filter-tag-button tag bg-cyan-500" data-tag="🧃 Su">🧃 Su</button>
+                </div>
+
                 <div id="reminder-list">
                     <!-- Hatırlatıcılar buraya dinamik olarak eklenecek -->
                 </div>
             </div>
 
+            <!-- Takvim Görünümü -->
+            <div id="calendar-view" class="hidden">
+                 <div class="card p-6 rounded-xl shadow-lg">
+                    <div class="flex items-center justify-between mb-4">
+                        <button id="prev-month" class="text-xl font-bold"><i class="fas fa-chevron-left"></i></button>
+                        <h2 id="current-month-year" class="text-xl font-bold"></h2>
+                        <button id="next-month" class="text-xl font-bold"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                    <div class="calendar-grid text-sm mb-4">
+                        <div class="font-bold text-center text-gray-500 dark:text-gray-400">Pzt</div>
+                        <div class="font-bold text-center text-gray-500 dark:text-gray-400">Sal</div>
+                        <div class="font-bold text-center text-gray-500 dark:text-gray-400">Çar</div>
+                        <div class="font-bold text-center text-gray-500 dark:text-gray-400">Per</div>
+                        <div class="font-bold text-center text-gray-500 dark:text-gray-400">Cum</div>
+                        <div class="font-bold text-center text-gray-500 dark:text-gray-400">Cmt</div>
+                        <div class="font-bold text-center text-gray-500 dark:text-gray-400">Paz</div>
+                    </div>
+                    <div id="calendar-days" class="calendar-grid">
+                        <!-- Takvim günleri buraya dinamik olarak eklenecek -->
+                    </div>
+                    <div id="calendar-reminder-list" class="mt-4">
+                        <p class="text-center text-gray-500 dark:text-gray-400 mt-8">Lütfen bir gün seçin.</p>
+                    </div>
+                 </div>
+            </div>
+
             <!-- Yeni Hatırlatıcı Ekleme Formu -->
             <div id="add-reminder-view" class="hidden">
                 <div class="card p-6 rounded-xl shadow-lg">
-                    <h2 class="text-xl font-bold mb-4">Yeni Hatırlatıcı Ekle</h2>
-                    <input id="reminder-text" type="text" placeholder="Hatırlatmak istediğin şeyi yaz..." class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 mb-4">
-
-                    <div class="flex items-center space-x-4 mb-4">
-                        <input id="reminder-datetime" type="datetime-local" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-bold">Yeni Hatırlatıcı Ekle</h2>
+                        <button id="close-add-reminder" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
                     </div>
 
-                    <!-- Emoji Seçme Butonu ve Konteyneri -->
-                    <div class="relative mb-4">
-                        <button id="toggle-emoji-picker" class="w-full p-3 rounded-lg bg-gray-200 hover:bg-gray-300 transition text-gray-700">
-                            <i class="far fa-smile mr-2"></i>Emoji Ekle
-                        </button>
-                        <div id="emoji-picker-container" class="absolute hidden z-20 top-full mt-2 w-full">
-                            <!-- TODO: Buraya emoji klavyesi eklenecek -->
+                    <input id="reminder-text" type="text" placeholder="Hatırlatmak istediğin şeyi yaz..." class="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-500 mb-4">
+
+                    <div class="flex items-center space-x-4 mb-4">
+                        <input id="reminder-datetime" type="datetime-local" class="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-gray-500">
+                    </div>
+
+                    <!-- Kategori Etiketleri -->
+                    <div class="mb-4">
+                        <h3 class="text-md font-bold mb-2">Etiket Ekle</h3>
+                        <div class="flex flex-wrap gap-2">
+                            <button class="tag-button tag bg-blue-500" data-tag="💊 İlaç">💊 İlaç</button>
+                            <button class="tag-button tag bg-green-500" data-tag="🛒 Alışveriş">🛒 Alışveriş</button>
+                            <button class="tag-button tag bg-purple-500" data-tag="📚 Ders">📚 Ders</button>
+                            <button class="tag-button tag bg-cyan-500" data-tag="🧃 Su">🧃 Su</button>
                         </div>
                     </div>
 
@@ -164,90 +260,112 @@
 
             <!-- Ayarlar Sayfası -->
             <div id="settings-view" class="hidden">
-                <div class="card p-6 rounded-xl shadow-lg space-y-4">
-                    <h2 class="text-xl font-bold mb-4">Ayarlar</h2>
-
-                    <!-- Kullanıcı Modu Seçimi -->
-                    <div class="space-y-2">
-                        <h3 class="text-lg font-bold">Kullanıcı Modu</h3>
-                        <div class="flex space-x-4">
-                            <label class="flex items-center">
-                                <input type="radio" name="user-mode" value="cocuk" class="form-radio">
-                                <span class="ml-2">🧒 Çocuk</span>
-                            </label>
-                            <label class="flex items-center">
-                                <input type="radio" name="user-mode" value="yetiskin" class="form-radio" checked>
-                                <span class="ml-2">👩‍🦰 Genç / Yetişkin</span>
-                            </label>
-                            <label class="flex items-center">
-                                <input type="radio" name="user-mode" value="yasli" class="form-radio">
-                                <span class="ml-2">👵 Yaşlı</span>
-                            </label>
-                        </div>
+                <div class="card p-6 rounded-xl shadow-lg">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-bold">Ayarlar</h2>
+                        <button id="close-settings" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
                     </div>
-
-                    <!-- Yazı Boyutu Seçimi -->
-                    <div class="space-y-2">
-                        <h3 class="text-lg font-bold">Yazı Boyutu</h3>
-                        <div class="flex space-x-4">
-                            <label class="flex items-center">
-                                <input type="radio" name="font-size" value="small" class="form-radio">
-                                <span class="ml-2">Küçük</span>
-                            </label>
-                            <label class="flex items-center">
-                                <input type="radio" name="font-size" value="medium" class="form-radio" checked>
-                                <span class="ml-2">Orta</span>
-                            </label>
-                            <label class="flex items-center">
-                                <input type="radio" name="font-size" value="large" class="form-radio">
-                                <span class="ml-2">Büyük</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Tema Seçimi -->
-                    <div class="flex justify-between items-center">
-                        <span class="text-lg font-bold">Karanlık Mod</span>
-                        <label class="toggle-switch relative inline-block">
-                            <input type="checkbox" id="dark-mode-toggle">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-
-                    <!-- Sesli Hatırlatma Ayarları -->
-                    <div class="space-y-2">
-                        <h3 class="text-lg font-bold">Sesli Hatırlatma Ayarları</h3>
-                        <div class="flex justify-between items-center">
-                            <span>Sesli Okuma Aç/Kapat</span>
-                            <label class="toggle-switch relative inline-block">
-                                <input type="checkbox" id="tts-toggle">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span>Hatırlatmaları Sesle Ekle</span>
-                            <label class="toggle-switch relative inline-block">
-                                <input type="checkbox" id="voice-input-toggle">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Tarih ve Saat Ayarları -->
-                    <div class="space-y-2">
-                        <h3 class="text-lg font-bold">Tarih ve Saat Ayarları</h3>
-                        <div class="flex justify-between items-center">
-                            <span>Saat Biçimi</span>
+                    
+                    <div class="space-y-4">
+                        <!-- Kullanıcı Modu Seçimi -->
+                        <div class="space-y-2">
+                            <h3 class="text-lg font-bold">Kullanıcı Modu</h3>
                             <div class="flex space-x-4">
                                 <label class="flex items-center">
-                                    <input type="radio" name="time-format" value="12" class="form-radio">
-                                    <span class="ml-2">12 Saat</span>
+                                    <input type="radio" name="user-mode" value="cocuk" class="form-radio text-gray-800 dark:text-gray-200" checked>
+                                    <span class="ml-2">🧒 Çocuk</span>
                                 </label>
                                 <label class="flex items-center">
-                                    <input type="radio" name="time-format" value="24" class="form-radio" checked>
-                                    <span class="ml-2">24 Saat</span>
+                                    <input type="radio" name="user-mode" value="yetiskin" class="form-radio text-gray-800 dark:text-gray-200">
+                                    <span class="ml-2">👩‍🦰 Genç / Yetişkin</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="user-mode" value="yasli" class="form-radio text-gray-800 dark:text-gray-200">
+                                    <span class="ml-2">👵 Yaşlı</span>
                                 </label>
                             </div>
+                        </div>
+
+                        <!-- Yazı Boyutu Seçimi -->
+                        <div class="space-y-2">
+                            <h3 class="text-lg font-bold">Yazı Boyutu</h3>
+                            <div class="flex space-x-4">
+                                <label class="flex items-center">
+                                    <input type="radio" name="font-size" value="small" class="form-radio text-gray-800 dark:text-gray-200">
+                                    <span class="ml-2">Küçük</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="font-size" value="medium" class="form-radio text-gray-800 dark:text-gray-200" checked>
+                                    <span class="ml-2">Orta</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="font-size" value="large" class="form-radio text-gray-800 dark:text-gray-200">
+                                    <span class="ml-2">Büyük</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Tema Seçimi -->
+                        <div class="flex justify-between items-center">
+                            <span class="text-lg font-bold">Karanlık Mod</span>
+                            <label class="toggle-switch relative inline-block">
+                                <input type="checkbox" id="dark-mode-toggle">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        
+                        <!-- Sesli Hatırlatma Ayarları -->
+                        <div class="space-y-2">
+                            <h3 class="text-lg font-bold">Sesli Hatırlatma Ayarları</h3>
+                            <div class="flex justify-between items-center">
+                                <span>Sesli Okuma Aç/Kapat</span>
+                                <label class="toggle-switch relative inline-block">
+                                    <input type="checkbox" id="tts-toggle">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                             <div class="flex justify-between items-center">
+                                <span>Ses Hızı</span>
+                                <input type="range" id="tts-rate" min="0.5" max="2" value="1" step="0.1" class="w-1/2">
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span>Ses Tonu (Kadın / Erkek)</span>
+                                <div class="flex space-x-4">
+                                    <label class="flex items-center">
+                                        <input type="radio" name="tts-voice" value="kadin" class="form-radio" checked>
+                                        <span class="ml-2">Kadın</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="radio" name="tts-voice" value="erkek" class="form-radio">
+                                        <span class="ml-2">Erkek</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Bildirim Ayarları -->
+                        <div class="space-y-2">
+                             <h3 class="text-lg font-bold">Bildirim Ayarları</h3>
+                             <div class="flex justify-between items-center">
+                                <span>Sessiz Mod (22:00-07:00)</span>
+                                <label class="toggle-switch relative inline-block">
+                                    <input type="checkbox" id="silent-mode-toggle">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Veri & Hafıza Ayarları -->
+                        <div class="space-y-2">
+                             <h3 class="text-lg font-bold">Veri & Hafıza Ayarları</h3>
+                             <button id="export-data" class="w-full p-3 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition text-gray-700 dark:text-white">
+                                <i class="fas fa-download mr-2"></i>Verileri İndir (JSON)
+                            </button>
+                            <button id="clear-local-data" class="w-full p-3 rounded-lg bg-red-500 hover:bg-red-600 transition text-white">
+                                <i class="fas fa-trash-alt mr-2"></i>Yerel Verileri Temizle
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -255,16 +373,26 @@
         </div>
     </main>
 
-    <!-- Yeni Hatırlatıcı Ekleme Butonu (FAB) -->
-    <button id="fab-add" class="fixed bottom-4 right-4 bg-gray-800 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-3xl hover:bg-gray-700 transition">
-        <i class="fas fa-plus"></i>
-    </button>
-    
+    <!-- Alt Menü Çubuğu (Navbar) -->
+    <footer class="bg-gray-800 text-white p-2 shadow-md flex justify-around items-center fixed bottom-0 left-0 w-full z-10">
+        <button id="nav-home" class="flex flex-col items-center p-2 rounded-lg hover:bg-gray-700 transition">
+            <i class="fas fa-list text-xl"></i>
+            <span class="text-xs mt-1">Liste</span>
+        </button>
+        <button id="nav-calendar" class="flex flex-col items-center p-2 rounded-lg hover:bg-gray-700 transition">
+            <i class="fas fa-calendar-alt text-xl"></i>
+            <span class="text-xs mt-1">Takvim</span>
+        </button>
+        <button id="fab-add" class="bg-gray-800 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-3xl hover:bg-gray-700 transition absolute bottom-4">
+            <i class="fas fa-plus"></i>
+        </button>
+    </footer>
+
     <!-- Toast Mesajları için Konteyner -->
     <div id="toast-container" class="fixed bottom-16 left-1/2 -translate-x-1/2 flex flex-col items-center z-50"></div>
     
     <script>
-        // GLOBAL DEĞİŞKENLER - En başta tanımlanmalıdır
+        // GLOBAL DEĞİŞKENLER - Tüm değişkenler en başta tanımlanmalıdır
         const body = document.body;
         const toggleThemeButton = document.getElementById('toggle-theme');
         const themeIcon = document.getElementById('theme-icon');
@@ -272,6 +400,7 @@
         const homeView = document.getElementById('home-view');
         const addReminderView = document.getElementById('add-reminder-view');
         const settingsView = document.getElementById('settings-view');
+        const calendarView = document.getElementById('calendar-view');
         const fabAdd = document.getElementById('fab-add');
         const reminderList = document.getElementById('reminder-list');
         const reminderText = document.getElementById('reminder-text');
@@ -279,6 +408,12 @@
         const saveReminderButton = document.getElementById('save-reminder');
         const darkModeToggle = document.getElementById('dark-mode-toggle');
         const toastContainer = document.getElementById('toast-container');
+        const summarySection = document.getElementById('summary-section');
+        const surpriseMessageSection = document.getElementById('surprise-message');
+
+        // Geri dön butonları
+        const closeAddReminderButton = document.getElementById('close-add-reminder');
+        const closeSettingsButton = document.getElementById('close-settings');
         
         // Sesli not kayıt ve oynatma elementleri
         const recordVoiceButton = document.getElementById('record-voice');
@@ -289,47 +424,177 @@
         let audioChunks = [];
         let isRecording = false;
 
-        // Emoji Seçimi için elementler
-        const toggleEmojiPickerButton = document.getElementById('toggle-emoji-picker');
-        const emojiPickerContainer = document.getElementById('emoji-picker-container');
-
         // Ayarlar elementleri
         const userModeRadios = document.querySelectorAll('input[name="user-mode"]');
         const fontSizeRadios = document.querySelectorAll('input[name="font-size"]');
         const ttsToggle = document.getElementById('tts-toggle');
-        const voiceInputToggle = document.getElementById('voice-input-toggle');
+        const ttsRateInput = document.getElementById('tts-rate');
+        const ttsVoiceRadios = document.querySelectorAll('input[name="tts-voice"]');
+        const exportDataButton = document.getElementById('export-data');
+        const clearLocalDataButton = document.getElementById('clear-local-data');
+        const silentModeToggle = document.getElementById('silent-mode-toggle');
         const timeFormatRadios = document.querySelectorAll('input[name="time-format"]');
+
+        // Etiket butonları
+        const tagButtons = document.querySelectorAll('.tag-button');
+        const filterTagButtons = document.querySelectorAll('.filter-tag-button');
+        let selectedTag = null;
+        let activeFilterTag = 'Tümü';
+
+        // Takvim elementleri
+        const navHomeButton = document.getElementById('nav-home');
+        const navCalendarButton = document.getElementById('nav-calendar');
+        const prevMonthButton = document.getElementById('prev-month');
+        const nextMonthButton = document.getElementById('next-month');
+        const currentMonthYear = document.getElementById('current-month-year');
+        const calendarDaysContainer = document.getElementById('calendar-days');
+        const calendarReminderList = document.getElementById('calendar-reminder-list');
+        let currentDate = new Date();
 
         // Hatırlatıcı verilerini tutma ve yerel depolamadan (localStorage) okuma
         let reminders = JSON.parse(localStorage.getItem('reminders')) || [];
         
-        // FONKSİYONLAR - Değişkenlerden sonra tanımlanmalıdır
+        const moralNotes = [
+            "Sen harika iş çıkardın bugün! 🌟",
+            "Küçük bir ara ver, su iç! 🧴",
+            "Unutma, her küçük adım hedefine götürür. 🚀",
+            "Bugün kendine iyi davranmayı unutma. ❤️",
+            "Ne kadar meşgul olursan ol, daima gülümse. 😊"
+        ];
+
+        // FONKSİYONLAR
         
         // Sayfa geçişlerini yöneten fonksiyon
         function showView(viewId) {
             homeView.classList.add('hidden');
             addReminderView.classList.add('hidden');
             settingsView.classList.add('hidden');
+            calendarView.classList.add('hidden');
             document.getElementById(viewId).classList.remove('hidden');
-            fabAdd.classList.toggle('hidden', viewId !== 'home-view');
+            
+            fabAdd.classList.toggle('hidden', viewId !== 'home-view' && viewId !== 'add-reminder-view');
+
+            if (viewId === 'home-view') {
+                updateSummary();
+                showRandomMoralNote();
+                renderReminders();
+            } else if (viewId === 'calendar-view') {
+                renderCalendar();
+            }
         }
 
+        // Anasayfa özetini güncelleyen fonksiyon
+        function updateSummary() {
+            const now = new Date();
+            const todayReminders = reminders.filter(r => new Date(r.dateTime).toDateString() === now.toDateString());
+            const completedReminders = reminders.filter(r => r.completed);
+            
+            let summaryHTML = '';
+            summaryHTML += `<p>Toplamda ${reminders.length} hatırlatıcın var.</p>`;
+            summaryHTML += `<p>Bugün için ${todayReminders.length} hatırlatman var. ✅</p>`;
+            summaryHTML += `<p>Toplamda ${completedReminders.length} hatırlatmayı tamamladın! 🎉</p>`;
+            
+            summarySection.innerHTML = summaryHTML;
+            summarySection.classList.remove('hidden');
+        }
+        
+        // Sürpriz mesaj gösteren fonksiyon
+        function showRandomMoralNote() {
+            const randomIndex = Math.floor(Math.random() * moralNotes.length);
+            surpriseMessageSection.innerHTML = `<p>${moralNotes[randomIndex]}</p>`;
+            surpriseMessageSection.classList.remove('hidden');
+        }
+
+        // Takvimi render eden fonksiyon
+        function renderCalendar() {
+            calendarDaysContainer.innerHTML = '';
+            calendarReminderList.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 mt-8">Lütfen bir gün seçin.</p>';
+            
+            const month = currentDate.getMonth();
+            const year = currentDate.getFullYear();
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            
+            const monthNames = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+            currentMonthYear.textContent = `${monthNames[month]} ${year}`;
+            
+            // Hafta içi boşlukları ekle (Pazartesi 0, Pazar 6)
+            let startDay = (firstDay.getDay() + 6) % 7;
+            for (let i = 0; i < startDay; i++) {
+                const emptyDay = document.createElement('div');
+                calendarDaysContainer.appendChild(emptyDay);
+            }
+            
+            // Takvim günlerini ekle
+            for (let day = 1; day <= lastDay.getDate(); day++) {
+                const dayElement = document.createElement('div');
+                dayElement.className = 'calendar-day';
+                dayElement.textContent = day;
+                
+                const dayDate = new Date(year, month, day).toDateString();
+                const hasReminder = reminders.some(r => new Date(r.dateTime).toDateString() === dayDate);
+                if (hasReminder) {
+                    dayElement.classList.add('has-reminder');
+                }
+                
+                dayElement.addEventListener('click', () => {
+                    const selectedDate = new Date(year, month, day);
+                    showRemindersForDay(selectedDate);
+                });
+                
+                calendarDaysContainer.appendChild(dayElement);
+            }
+        }
+
+        // Takvimde seçilen günün hatırlatıcılarını gösteren fonksiyon
+        function showRemindersForDay(date) {
+            const remindersForDay = reminders.filter(r => new Date(r.dateTime).toDateString() === date.toDateString());
+            
+            calendarReminderList.innerHTML = '';
+            if (remindersForDay.length === 0) {
+                calendarReminderList.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400 mt-8">${date.toLocaleDateString()} için hatırlatıcı yok.</p>`;
+            } else {
+                remindersForDay.forEach(reminder => {
+                    const reminderElement = document.createElement('div');
+                    reminderElement.className = 'card p-4 rounded-xl shadow-md flex items-center justify-between mb-2';
+                    const time = new Date(reminder.dateTime).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+                    const tagHTML = reminder.tag ? `<span class="tag">${reminder.tag}</span>` : '';
+                    reminderElement.innerHTML = `
+                        <div class="flex-grow">
+                            <div class="text-sm text-gray-500 dark:text-gray-400 mb-1">${time} ${tagHTML}</div>
+                            <p class="text-lg">${reminder.text}</p>
+                        </div>
+                    `;
+                    calendarReminderList.appendChild(reminderElement);
+                });
+            }
+        }
+        
         // Hatırlatıcıları sayfaya render eden fonksiyon
         function renderReminders() {
             reminderList.innerHTML = '';
-            if (reminders.length === 0) {
+            const filteredReminders = activeFilterTag === 'Tümü' ? reminders : reminders.filter(r => r.tag === activeFilterTag);
+
+            if (filteredReminders.length === 0) {
                 reminderList.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400 mt-8">Henüz bir hatırlatıcınız yok. Eklemek için <i class="fas fa-plus"></i> butonuna basın.</p>';
             }
             const savedTimeFormat = localStorage.getItem('timeFormat') || '24';
-            reminders.forEach(reminder => {
+            
+            // Tarih sırasına göre sırala
+            filteredReminders.sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime));
+
+            filteredReminders.forEach(reminder => {
                 const reminderElement = document.createElement('div');
-                reminderElement.className = 'card p-4 rounded-xl shadow-md flex items-center justify-between';
+                const isCompleted = reminder.completed || false;
+                const completedClass = isCompleted ? 'opacity-50 line-through' : '';
+
+                reminderElement.className = `card p-4 rounded-xl shadow-md flex items-center justify-between ${completedClass}`;
                 
                 const time = new Date(reminder.dateTime).toLocaleString('tr-TR', {
                     year: 'numeric',
                     month: 'numeric',
                     day: 'numeric',
-                    hour: savedTimeFormat === '12' ? 'numeric' : '2-digit',
+                    hour: '2-digit',
                     minute: '2-digit',
                     hour12: savedTimeFormat === '12'
                 });
@@ -340,23 +605,39 @@
                         <audio controls src="${reminder.voiceNote}"></audio>
                     </div>`;
                 }
+
+                let tagHTML = reminder.tag ? `<span class="tag">${reminder.tag}</span>` : '';
                 
                 reminderElement.innerHTML = `
                     <div class="flex-grow">
-                        <div class="text-sm text-gray-500 dark:text-gray-400 mb-1">${time}</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400 mb-1">${time} ${tagHTML}</div>
                         ${contentHTML}
                     </div>
                     <div class="flex items-center space-x-2">
+                        <button class="bg-green-500 hover:bg-green-600 text-white p-2 rounded-full complete-btn">
+                            <i class="fas fa-check"></i>
+                        </button>
                         <button class="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full delete-btn">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
                 `;
                 
+                // Tamamla butonuna olay dinleyici ekle
+                reminderElement.querySelector('.complete-btn').addEventListener('click', () => {
+                    reminder.completed = true;
+                    localStorage.setItem('reminders', JSON.stringify(reminders));
+                    renderReminders();
+                    updateSummary();
+                    showToast('Hatırlatıcı tamamlandı!', 'bg-green-500');
+                });
+
+                // Silme butonuna olay dinleyici ekle
                 reminderElement.querySelector('.delete-btn').addEventListener('click', () => {
                     reminders = reminders.filter(r => r.id !== reminder.id);
                     localStorage.setItem('reminders', JSON.stringify(reminders));
                     renderReminders();
+                    updateSummary();
                     showToast('Hatırlatıcı silindi!', 'bg-red-500');
                 });
                 
@@ -371,7 +652,7 @@
             themeIcon.classList.toggle('fa-sun', isDark);
             localStorage.setItem('darkMode', isDark);
             darkModeToggle.checked = isDark;
-            renderReminders(); // Tema değiştiğinde hatırlatıcıları yeniden çiz
+            renderReminders();
         }
 
         // Yazı boyutunu yöneten fonksiyon
@@ -382,16 +663,32 @@
             fontSizeRadios.forEach(radio => {
                 radio.checked = (radio.value === size);
             });
-            renderReminders(); // Yazı boyutu değiştiğinde hatırlatıcıları yeniden çiz
+            renderReminders();
+        }
+        
+        // Kullanıcı moduna göre yazı boyutu ayarla
+        function setUserMode(mode) {
+             localStorage.setItem('userMode', mode);
+             userModeRadios.forEach(radio => {
+                 radio.checked = (radio.value === mode);
+             });
+             // Örneğin, yaşlı modunda yazı boyutunu otomatik büyüt
+             if (mode === 'yasli') {
+                 setFontSize('large');
+             } else {
+                 setFontSize('medium');
+             }
         }
 
         // Saat biçimini yöneten fonksiyon
         function setTimeFormat(format) {
             localStorage.setItem('timeFormat', format);
-            timeFormatRadios.forEach(radio => {
-                radio.checked = (radio.value === format);
-            });
-            renderReminders(); // Saat formatı değiştiğinde hatırlatıcıları yeniden çiz
+            if(timeFormatRadios) {
+                 timeFormatRadios.forEach(radio => {
+                     radio.checked = (radio.value === format);
+                 });
+            }
+            renderReminders();
         }
         
         // Web Notification API ile bildirim planlayan fonksiyon
@@ -400,6 +697,16 @@
                 const now = new Date();
                 const reminderTime = new Date(reminder.dateTime);
                 const delay = reminderTime.getTime() - now.getTime();
+
+                // Sessiz mod kontrolü
+                const silentModeEnabled = silentModeToggle.checked;
+                const currentHour = now.getHours();
+                const isSilentTime = currentHour >= 22 || currentHour < 7;
+                
+                if (silentModeEnabled && isSilentTime) {
+                    showToast('Sessiz mod açık olduğu için bu saatte bildirim gönderilmeyecek.', 'bg-yellow-500');
+                    return;
+                }
 
                 if (delay > 0) {
                     setTimeout(() => {
@@ -414,7 +721,7 @@
                            const audio = new Audio(reminder.voiceNote);
                            audio.play();
                         }
-                        if (reminder.isVoiced) {
+                        if (ttsToggle.checked) {
                            speak(reminder.text);
                         }
                     }, delay);
@@ -429,6 +736,28 @@
                 });
             } else {
                  showToast('Bildirim izni verilmediği için hatırlatıcılar çalışmayabilir.', 'bg-yellow-500');
+            }
+        }
+        
+        // TTS (Text-to-Speech) fonksiyonu
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                const voices = speechSynthesis.getVoices();
+                const voiceType = localStorage.getItem('ttsVoice') || 'kadin';
+                const ttsRate = parseFloat(localStorage.getItem('ttsRate')) || 1;
+                
+                // Türkçe kadın veya erkek sesi seç
+                const selectedVoice = voices.find(voice => {
+                    return voice.lang === 'tr-TR' && (voiceType === 'kadin' ? voice.name.includes('Kadın') : voice.name.includes('Erkek'));
+                }) || voices.find(voice => voice.lang === 'tr-TR'); // Yedek olarak herhangi bir Türkçe ses
+                
+                if (selectedVoice) {
+                    utterance.voice = selectedVoice;
+                }
+                
+                utterance.rate = ttsRate;
+                speechSynthesis.speak(utterance);
             }
         }
 
@@ -493,30 +822,6 @@
             voiceNotePreview.classList.add('hidden');
         });
 
-        // Emoji Seçimi
-        toggleEmojiPickerButton.addEventListener('click', () => {
-            emojiPickerContainer.classList.toggle('hidden');
-        });
-        
-        // Uygulama başladığında ve ayarları yükleme
-        window.addEventListener('load', () => {
-            // Kayıtlı ayarları uygula
-            const savedTheme = localStorage.getItem('darkMode') === 'true';
-            setTheme(savedTheme);
-            const savedFontSize = localStorage.getItem('fontSize') || 'medium';
-            setFontSize(savedFontSize);
-            const savedTimeFormat = localStorage.getItem('timeFormat') || '24';
-            setTimeFormat(savedTimeFormat);
-
-            // Ana görünümü göster
-            showView('home-view');
-            
-            // Bildirim izni iste
-            if ('Notification' in window && Notification.permission !== 'denied') {
-                Notification.requestPermission();
-            }
-        });
-
         // Olay Dinleyicileri
         toggleThemeButton.addEventListener('click', () => {
             const isDark = body.classList.contains('dark-mode');
@@ -526,16 +831,36 @@
         darkModeToggle.addEventListener('change', (e) => {
             setTheme(e.target.checked);
         });
+        
+        silentModeToggle.addEventListener('change', (e) => {
+            localStorage.setItem('silentMode', e.target.checked);
+        });
 
         fontSizeRadios.forEach(radio => {
             radio.addEventListener('change', (e) => {
                 setFontSize(e.target.value);
             });
         });
+        
+        userModeRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                setUserMode(e.target.value);
+            });
+        });
 
         timeFormatRadios.forEach(radio => {
             radio.addEventListener('change', (e) => {
                 setTimeFormat(e.target.value);
+            });
+        });
+
+        // Ayarlar menüsündeki sesli okuma ayarları için
+        ttsRateInput.addEventListener('input', (e) => {
+            localStorage.setItem('ttsRate', e.target.value);
+        });
+        ttsVoiceRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                localStorage.setItem('ttsVoice', e.target.value);
             });
         });
         
@@ -546,11 +871,57 @@
             showView('add-reminder-view');
         });
 
+        closeAddReminderButton.addEventListener('click', () => {
+            showView('home-view');
+        });
+
+        closeSettingsButton.addEventListener('click', () => {
+            showView('home-view');
+        });
+
+        navHomeButton.addEventListener('click', () => {
+            showView('home-view');
+        });
+
+        navCalendarButton.addEventListener('click', () => {
+            showView('calendar-view');
+        });
+
+        prevMonthButton.addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderCalendar();
+        });
+
+        nextMonthButton.addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderCalendar();
+        });
+
+
+        tagButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                tagButtons.forEach(btn => btn.classList.remove('ring-2', 'ring-gray-500'));
+                e.target.classList.add('ring-2', 'ring-gray-500');
+                selectedTag = e.target.dataset.tag;
+            });
+        });
+
+        filterTagButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                filterTagButtons.forEach(btn => btn.classList.remove('bg-green-500'));
+                e.target.classList.add('bg-green-500');
+                activeFilterTag = e.target.dataset.tag;
+                renderReminders();
+            });
+        });
+        
+        // Başlangıçta "Tümü" etiketini aktif yap
+        document.querySelector('.filter-tag-button[data-tag="Tümü"]').classList.add('bg-green-500');
+
         saveReminderButton.addEventListener('click', () => {
             const text = reminderText.value;
             const dateTime = reminderDateTime.value;
             const voiceNote = voiceNoteAudio.src !== '' ? voiceNoteAudio.src : null;
-            const isVoiced = ttsToggle.checked;
 
             if (!text && !voiceNote) {
                 showToast('Lütfen bir metin veya sesli not girin!', 'bg-red-500');
@@ -566,7 +937,8 @@
                 text: text,
                 dateTime: dateTime,
                 voiceNote: voiceNote,
-                isVoiced: isVoiced,
+                tag: selectedTag,
+                completed: false
             };
             reminders.push(newReminder);
             localStorage.setItem('reminders', JSON.stringify(reminders));
@@ -579,9 +951,71 @@
             reminderDateTime.value = '';
             voiceNoteAudio.src = '';
             voiceNotePreview.classList.add('hidden');
-            
+            selectedTag = null;
+            tagButtons.forEach(btn => btn.classList.remove('ring-2', 'ring-gray-500'));
+
             renderReminders();
             showView('home-view');
+        });
+        
+        // Veri Dışa Aktarma
+        exportDataButton.addEventListener('click', () => {
+            const dataStr = JSON.stringify(reminders, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            const exportFileDefaultName = 'unutmam-ben-hatirlaticilar.json';
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+            showToast('Verileriniz başarıyla indirildi.', 'bg-green-500');
+        });
+
+        // Verileri Temizleme
+        clearLocalDataButton.addEventListener('click', () => {
+            if (confirm('Tüm hatırlatıcılar ve ayarlar silinecek. Emin misiniz?')) {
+                localStorage.clear();
+                reminders = [];
+                renderReminders();
+                showView('home-view');
+                showToast('Tüm veriler temizlendi.', 'bg-red-500');
+            }
+        });
+
+
+        // Sayfa yüklendiğinde çalışacak kodlar
+        window.addEventListener('load', () => {
+            // Kayıtlı ayarları uygula
+            const savedTheme = localStorage.getItem('darkMode') === 'true';
+            setTheme(savedTheme);
+            const savedFontSize = localStorage.getItem('fontSize') || 'medium';
+            setFontSize(savedFontSize);
+            const savedTimeFormat = localStorage.getItem('timeFormat') || '24';
+            setTimeFormat(savedTimeFormat);
+            const savedUserMode = localStorage.getItem('userMode') || 'yetiskin';
+            setUserMode(savedUserMode);
+            const savedSilentMode = localStorage.getItem('silentMode') === 'true';
+            silentModeToggle.checked = savedSilentMode;
+
+            ttsRateInput.value = localStorage.getItem('ttsRate') || '1';
+            const savedTtsVoice = localStorage.getItem('ttsVoice') || 'kadin';
+            ttsVoiceRadios.forEach(radio => {
+                 radio.checked = (radio.value === savedTtsVoice);
+            });
+            const ttsEnabled = localStorage.getItem('ttsToggle') === 'true';
+            ttsToggle.checked = ttsEnabled;
+
+
+            // Ana görünümü göster
+            showView('home-view');
+            
+            // Bildirim izni iste
+            if ('Notification' in window && Notification.permission !== 'denied') {
+                Notification.requestPermission();
+            }
+        });
+        
+        ttsToggle.addEventListener('change', (e) => {
+            localStorage.setItem('ttsToggle', e.target.checked);
         });
 
         // Tarih ve saat alanını otomatik olarak şimdiki zamana ayarla
