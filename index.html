@@ -490,10 +490,19 @@
     <!-- Firebase JS SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
-        // --- GLOBAL DEĞİŞKENLER VE VERİTABANI İLKELENDİRMELERİ ---
+        // Buraya kendi Firebase yapılandırma objenizi yapıştırın
+        // Örneğin:
+        // const firebaseConfig = {
+        //   apiKey: "AIzaSyC...",
+        //   authDomain: "proje-adi.firebaseapp.com",
+        //   projectId: "proje-adi",
+        //   storageBucket: "proje-adi.appspot.com",
+        //   messagingSenderId: "1234567890",
+        //   appId: "1:1234567890:web:abcdef"
+        // };
         // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyAGWCz-1V06n3suezP-AQMLq9QhNawmDcY",
@@ -504,6 +513,8 @@ const firebaseConfig = {
   appId: "1:529674985123:web:37951f62f89250dedd2916",
   measurementId: "G-YHZMQ7TX39"
 };
+
+        // --- GLOBAL DEĞİŞKENLER VE VERİTABANI İLKELENDİRMELERİ ---
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
         let app;
@@ -514,6 +525,7 @@ const firebaseConfig = {
         let reminders = [];
         let isAuthReady = false;
 
+        // Diğer DOM elementleri ve değişkenler... (Burada değişen bir şey yok)
         const body = document.body;
         const toggleThemeButton = document.getElementById('toggle-theme');
         const themeIcon = document.getElementById('theme-icon');
@@ -537,11 +549,9 @@ const firebaseConfig = {
         const statsContent = document.getElementById('stats-content');
         const userIdSpan = document.getElementById('user-id');
         
-        // Geri dön butonları
         const closeAddReminderButton = document.getElementById('close-add-reminder');
         const closeSettingsButton = document.getElementById('close-settings');
         
-        // Sesli not kayıt ve oynatma elementleri
         const recordVoiceButton = document.getElementById('record-voice');
         const voiceNotePreview = document.getElementById('voice-note-preview');
         const voiceNoteAudio = document.getElementById('voice-note-audio');
@@ -550,7 +560,6 @@ const firebaseConfig = {
         let audioChunks = [];
         let isRecording = false;
 
-        // Ayarlar elementleri
         const themeColorPicker = document.querySelectorAll('#settings-view [data-color]');
         const userModeRadios = document.querySelectorAll('input[name="user-mode"]');
         const fontSizeRadios = document.querySelectorAll('input[name="font-size"]');
@@ -561,13 +570,11 @@ const firebaseConfig = {
         const clearLocalDataButton = document.getElementById('clear-local-data');
         const silentModeToggle = document.getElementById('silent-mode-toggle');
         
-        // Etiket butonları
         const tagButtons = document.querySelectorAll('.tag-button');
         const filterTagButtons = document.querySelectorAll('.filter-tag-button');
         let selectedTag = null;
         let activeFilterTag = 'Tümü';
         
-        // Yeni eklenen form elementleri
         const modeDatetimeButton = document.getElementById('mode-datetime');
         const modeCountdownButton = document.getElementById('mode-countdown');
         const datetimeInputDiv = document.getElementById('datetime-input');
@@ -577,7 +584,6 @@ const firebaseConfig = {
         const reminderRepeatSelect = document.getElementById('reminder-repeat');
         let currentReminderMode = 'datetime';
 
-        // Takvim elementleri
         const navHomeButton = document.getElementById('nav-home');
         const navCalendarButton = document.getElementById('nav-calendar');
         const navHistoryButton = document.getElementById('nav-history');
@@ -589,7 +595,6 @@ const firebaseConfig = {
         const calendarReminderList = document.getElementById('calendar-reminder-list');
         let currentDate = new Date();
 
-        // QR kod modal elementleri
         const qrcodeModal = document.getElementById('qrcode-modal');
         const qrcodeContainer = document.getElementById('qrcode-container');
         const closeQrcodeModalButton = document.getElementById('close-qrcode-modal');
@@ -604,53 +609,53 @@ const firebaseConfig = {
         
         const notificationAudio = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3');
 
-        // Firestore ve Kimlik Doğrulama
+        // --- FONKSİYONLAR ---
+
+        // Firebase ve Kimlik Doğrulama
         async function initializeFirebase() {
-             try {
+            try {
                 if (Object.keys(firebaseConfig).length > 0) {
                     app = initializeApp(firebaseConfig);
                     auth = getAuth(app);
                     db = getFirestore(app);
 
-                    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                    await signInAnonymously(auth);
 
-                    if (initialAuthToken) {
-                         await signInWithCustomToken(auth, initialAuthToken);
-                    } else {
-                         await signInAnonymously(auth);
-                    }
                 } else {
-                    console.error("Firebase config is missing.");
-                    showToast('Veritabanı bağlantısı kurulamadı. Veriler kalıcı olmayabilir.', 'bg-red-500');
+                    console.error("Firebase config is missing. Please provide your configuration.");
+                    showToast('Firebase yapılandırması eksik. Veriler kalıcı olmayabilir.', 'bg-red-500');
                 }
-             } catch(error) {
-                 console.error("Firebase initialization failed:", error);
-                 showToast('Firebase başlatılırken bir hata oluştu.', 'bg-red-500');
-             }
+            } catch(error) {
+                console.error("Firebase initialization failed:", error);
+                showToast('Firebase başlatılırken bir hata oluştu.', 'bg-red-500');
+            }
         }
         
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                userId = user.uid;
-                isAuthReady = true;
-                console.log("User signed in:", userId);
-                userIdSpan.textContent = userId;
-                
-                // Firestore'dan verileri dinlemeye başla
-                const remindersRef = collection(db, 'artifacts', appId, 'users', userId, 'reminders');
-                onSnapshot(remindersRef, (snapshot) => {
-                    reminders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    console.log("Reminders loaded from Firestore:", reminders);
-                    renderAllViews();
-                });
-            } else {
-                console.log("User signed out.");
-                isAuthReady = true;
-                reminders = [];
-                userIdSpan.textContent = "Misafir Kullanıcı";
-                renderAllViews();
-            }
-        });
+        // Kimlik doğrulama durumunu dinleyen fonksiyon
+        function listenForAuthChanges() {
+             onAuthStateChanged(auth, (user) => {
+                 if (user) {
+                     userId = user.uid;
+                     isAuthReady = true;
+                     console.log("User signed in:", userId);
+                     userIdSpan.textContent = userId;
+                    
+                     // Firebase'den verileri dinlemeye başla
+                     const remindersRef = collection(db, 'artifacts', appId, 'users', userId, 'reminders');
+                     onSnapshot(remindersRef, (snapshot) => {
+                         reminders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                         console.log("Reminders loaded from Firestore:", reminders);
+                         renderAllViews();
+                     });
+                 } else {
+                     console.log("User signed out.");
+                     isAuthReady = true;
+                     reminders = [];
+                     userIdSpan.textContent = "Misafir Kullanıcı";
+                     renderAllViews();
+                 }
+             });
+        }
         
         // Veritabanı işlemleri
         async function saveReminderToDb(reminderData) {
@@ -1406,10 +1411,13 @@ const firebaseConfig = {
 
 
         // Sayfa yüklendiğinde çalışacak kodlar
-        window.addEventListener('load', () => {
+        window.addEventListener('load', async () => {
             // Firebase'i başlat
-            initializeFirebase();
+            await initializeFirebase();
             
+            // Kimlik doğrulama durumunu dinlemeye başla
+            listenForAuthChanges();
+
             // Kayıtlı ayarları uygula
             const savedTheme = localStorage.getItem('darkMode') === 'true';
             setTheme(savedTheme);
